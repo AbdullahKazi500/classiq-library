@@ -20,32 +20,70 @@ def main(full_file_paths: Iterable[str]) -> bool:
     return validate_unique_names() and all(map(is_valid_qmod, full_file_paths))
 
 
-def is_valid_qmod(file_path: str, automatically_add_timeout: bool = True) -> bool:
+def is_valid_qmod(
+    file_path: str,
+    automatically_add_timeout: bool = True,
+    assert_if_fails: bool = False,
+) -> bool:
     file_name = os.path.basename(file_path)
 
     errors = []
 
     if _does_contain_dash_in_file_name(file_name):
         errors.append(
-            "Dash (-) is not allowed in file named. please use underscore (_)"
+            "File naming format error:\n"
+            "    Dash (-) is not allowed in file named. please use underscore (_)\n"
+            f"    for example, you may change '{file_path}' to '{file_path.replace('-', '_')}'."
         )
 
-    if not _is_file_in_timeouts(file_name):
+    if _does_contain_space_in_file_name(file_name):
+        errors.append(
+            "File naming format error:\n"
+            "    Space is not allowed in file named. please use underscore (_)\n"
+            f"    for example, you may change '{file_path}' to '{file_path.replace(' ', '_')}'."
+        )
+
+    if not _is_file_in_timeouts(file_name) and should_notebook_be_tested(file_path):
         if automatically_add_timeout:
             _add_file_to_timeouts(file_name)
-            errors.append("Automatically adding timeout.")
+            errors.append(
+                "A new qmod was detected.\n"
+                f"    Automatically adding a timeout entry {{{file_name} : {DEFAULT_TIMEOUT_SECONDS}}}.\n"
+                f"    Please make sure to add the changes done to '{TIMEOUTS_FILE}'"
+            )
         else:
-            errors.append("File is missing timeout in the timeouts.yaml file.")
+            errors.append(
+                "A new qmod was detected.\n"
+                "    However, a coresponding entry in the timeouts file is missing.\n"
+                f"    Please add an entry. You may add '{{{file_name} : {DEFAULT_TIMEOUT_SECONDS}}}'\n"
+                f"        to {TIMEOUTS_FILE}\n"
+                "    Alternatively, you may install pre-commit. It will automatically add a timeout entry in the next time you run 'git commit'."
+            )
 
-    if errors:
-        spacing = "\n\t"  # f-string cannot include backslash
-        print(f"File `{file_path}` has error(s):{spacing}{spacing.join(errors)}")
+    spacing = "\n\t"  # f-string cannot include backslash
+    errors_combined_message = (
+        f"File `{file_path}` has error(s):{spacing}{spacing.join(errors)}"
+    )
 
-    return not errors
+    if assert_if_fails:
+        assert not errors, errors_combined_message
+    else:
+        if errors:
+            print(errors_combined_message)
+
+        return not errors
+
+
+def should_notebook_be_tested(file_path: str) -> bool:
+    return not ("functions/" in file_path or "community/" in file_path)
 
 
 def _does_contain_dash_in_file_name(file_name: str) -> bool:
     return "-" in file_name
+
+
+def _does_contain_space_in_file_name(file_name: str) -> bool:
+    return " " in file_name
 
 
 def _is_file_in_timeouts(file_name: str) -> bool:
@@ -78,7 +116,11 @@ def validate_unique_names() -> bool:
     duplicate_names = [name for name, count in Counter(base_names).items() if count > 1]
 
     if duplicate_names:
-        print(f"Qmods with duplicate names found: {duplicate_names}")
+        print(
+            "File naming error:\n"
+            "    There is a requirement that each qmod file will have a unique names. No two files with the same name, even if the files sit in different directories.\n"
+            f"    However, the following qmods were found with duplicate names: {duplicate_names}"
+        )
 
     is_ok = not duplicate_names
     return is_ok

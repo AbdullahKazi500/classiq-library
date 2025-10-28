@@ -3,16 +3,19 @@ pytest
 testbook
 nbformat
 
+
 torch
 torchvision
 galois
 cvxpy
-pyqsp==0.1.6
+pyqsp
 jsonpickle
 tensorboard
+qiskit
 qiskit-algorithms
 qiskit-machine-learning
 scikit-learn
-# Pin osqp version due to https://github.com/osqp/osqp/issues/728
-# (indirect dependency via cvxpy)
-osqp==1.0.1
+numpy
+openfermion
+openfermionpyscf
+networkx

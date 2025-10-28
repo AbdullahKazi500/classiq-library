@@ -1,7 +1,8 @@
 [![License](https://img.shields.io/github/license/Classiq/classiq-library)](https://opensource.org/license/mit)
 [![Version](https://badge.fury.io/py/classiq.svg)](https://badge.fury.io/py/classiq)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/classiq)
-[![Downloads](https://img.shields.io/pypi/dm/classiq.svg)](https://pypi.org/project/classiq/)
+[![Downloads](https://static.pepy.tech/badge/classiq)](https://pepy.tech/project/classiq)
+[![DOI](https://zenodo.org/badge/DOI/10.48550/arXiv.2412.07372.svg)](https://doi.org/10.48550/arXiv.2412.07372)
 
 <div align="center">
     <img src="README_resources/classiq-logo.svg" width="300" height="150">
@@ -23,7 +24,7 @@ Whether you're a researcher, developer, or student, Classiq helps you simplify c
    &emsp;|&emsp;
    <a href="https://docs.classiq.io/latest/">📖 Documentation</a>
    &emsp; | &emsp;
-   <a href="https://docs.classiq.io/latest/">Getting Started</a>
+   <a href="https://docs.classiq.io/latest/classiq_101/">Getting Started</a>
    &emsp;
 </p>
 
@@ -40,7 +41,11 @@ If you'd rather work programmatically using Python, Classiq also provides an SDK
 pip install classiq
 ```
 
-Please note that the latest Classiq SDK for Python doesn't work in Python 3.12 yet. Please refer to [Issue #17](https://github.com/Classiq/classiq-library/issues/17).
+Alternatively, after cloning this repository, you may run
+
+```bash
+pip install --upgrade -r requirements.txt
+```
 
 ## Running This Repository's Demos
 
@@ -49,7 +54,11 @@ This repository has 2 kinds of demos: `.qmod` and `.ipynb`.
 The `.qmod` files are intended for usage with [Classiq's platform](https://platform.classiq.io/).
 Upload those `.qmod` files into the [Synthesis tab](https://platform.classiq.io/synthesis)
 
-The `.ipynb` files are intended to be viewed inside [JupyterLab](https://jupyter.org/).
+The `.ipynb` files are intended to be viewed inside [JupyterLab](https://jupyter.org/) (or by programs that support such files, such as VSCode).
+
+## Use the library with AI agents
+
+See the [Classiq documentation](https://docs.classiq.io/latest/user-guide/ai/) to learn how to use the Classiq library with AI agents.
 
 # Create Quantum Programs with Classiq
 
@@ -69,22 +78,23 @@ def main(res: Output[QBit]):
     X(res)
 
 
-model = create_model(main)
-quantum_program = synthesize(model)
+quantum_program = synthesize(main)
 
 show(quantum_program)
 
-result = execute(quantum_program).result()
-print(result[0].value.parsed_counts)
-# [{'res': 1}: 1000]
+result = execute(quantum_program).result_value()
+print(result.dataframe)
 ```
+
+|     | res | count | probability | bitstring |
+| --: | --: | ----: | ----------: | --------: |
+|   0 |   1 |  2048 |           1 |         1 |
 
 Let's unravel the code above:
 
 1. `def main` : We define the logic of our quantum program. We'll expand on this point soon below.
-2. `create_model` : We convert the logic we defined into a Model.
-3. `synthesize` : We synthesize the Model into a Quantum Program. From a logical definition of quantum operations, into a series of quantum gates.
-4. `execute` : Executing the quantum program. Can be executed on a physical quantum computer, or on simulations.
+2. `synthesize` : We synthesize the logic we defined into a Quantum Program. From a logical definition of quantum operations, into a series of quantum gates.
+3. `execute` : Executing the quantum program. Can be executed on a physical quantum computer, or on simulations. Defaults to simulations.
 
 ## 1) Defining the Logic of Quantum Programs
 
@@ -141,26 +151,16 @@ def angle_encoding(exe_params: CArray[CReal], qbv: Output[QArray[QBit]]) -> None
 
 For more, see this repository :)
 
-## 2) Logic to Models
-
-As we saw above, the `main` function can be converted to a model using `model = create_model(main)`.
-
-A model is built out of 2 parts: a `qmod`, and `synthesis options`.
-The former is a quantum language used for defining quantum programs, while the latter is a configuration for the execution of the program.
-
-The model can be saved via `write_qmod(model, "file_name")`, which will save 2 files: `file_name.qmod` and `file_name.synthesis_options.json`.
-You may encounter these files in this repository.
-
-## 3) Synthesis : Models to Quantum Program
+## 2) Synthesis : Logic to Quantum Program
 
 This is where the magic happens.
-Taking a model, which is a set of logical operations, and synthesizing it into physical qubits and the gates entangling them, is not an easy task.
+Taking a the `main` function, which is a set of logical operations, and synthesizing it into physical qubits and the gates entangling them, is not an easy task.
 
 Classiq's synthesis engine is able to optimize this process, whether by requiring the minimal amount of physical qubits, thus reusing as many qubits as possible, or by requiring minimal circuit width, thus lowering execution time and possible errors.
 
-## 4) Execution
+## 3) Execution
 
-Classiq provides an easy-to-use way to execute quantum programs, and provides various insights of the execution results.
+Classiq provides an easy-to-use way to execute quantum programs, and provides various insights of the execution results together with a familiar interface: `pandas.DataFrame`.
 
 ## Diagrams
 
@@ -207,58 +207,54 @@ With Classiq, you can build anything. Classiq provides a powerful modeling langu
 
 ## SDK : Classiq's Python Interface
 
-### Example: 3+5 with Classiq
+### Example: Calculating 3+5 with Classiq
 
 ```python
-from classiq import (
-    QArray,
-    Output,
-    allocate,
-    qfunc,
-    X,
-    QNum,
-    synthesize,
-    create_model,
-    show,
-    execute,
-)
+from classiq import *
 
 
 @qfunc
-def get_3(x: Output[QArray]) -> None:
-    allocate(2, x)
-    X(x[0])
-    X(x[1])
+def prepare_3(var: Output[QArray]) -> None:
+    allocate(2, var)
+    X(var[0])
+    X(var[1])
 
 
 @qfunc
-def get_5(x: Output[QArray]) -> None:
-    allocate(3, x)
-    X(x[0])
-    X(x[2])
+def prepare_5(var: Output[QArray]) -> None:
+    allocate(3, var)
+    X(var[0])
+    X(var[2])
 
 
 @qfunc
 def main(res: Output[QNum]) -> None:
     a = QNum("a")
     b = QNum("b")
-    get_3(a)
-    get_5(b)
-    res |= a + b  # should be 8
+
+    prepare_3(a)
+    prepare_5(b)
+
+    res |= a + b  # 3+5 should be 8
 
 
-model = create_model(main)
-quantum_program = synthesize(model)
+quantum_program = synthesize(main)
 
 show(quantum_program)
 
-result = execute(quantum_program).result()
-print(result[0].value.parsed_counts)
+result = execute(quantum_program).result_value()
+print(result.dataframe)
 ```
+
+|     | res | count | probability | bitstring |
+| --: | --: | ----: | ----------: | --------: |
+|   0 |   8 |  2048 |           1 |      1000 |
+
+For some pre-built state preparations, read [here](https://docs.classiq.io/latest/qmod-reference/api-reference/functions/open_library/state_preparation/?h=state)
 
 ## IDE : Classiq's Platform
 
-The examples found in this repository can be accessed via [Classiq's platform](https://platform.classiq.io/), in the [`model`](https://platform.classiq.io/dsl-synthesis) tab, under the same folder structure.
+Every example found in this repository can also be accessed via [Classiq's platform](https://platform.classiq.io/), in the [`model`](https://platform.classiq.io/dsl-synthesis) tab, under the same folder structure.
 
 Additionally, one may write their own model in the model editor (highlighted in green) or upload his own model (highlighted in red)
 
@@ -269,14 +265,14 @@ Additionally, one may write their own model in the model editor (highlighted in 
 1. Create a model (paste in the [`model`](https://platform.classiq.io/dsl-synthesis) tab)
 
 ```
-qfunc get_3(output x: qnum){
-allocate<2>(x);
+qfunc get_3(output x: qbit[]){
+ allocate(2,x);
  X(x[0]);
  X(x[1]);
 }
 
-qfunc get_5(output x: qnum){
- allocate<3>(x);
+qfunc get_5(output x: qbit[]){
+ allocate(3,x);
  X(x[0]);
  X(x[2]);
 }

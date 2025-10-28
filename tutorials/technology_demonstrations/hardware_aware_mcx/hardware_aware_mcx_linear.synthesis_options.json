@@ -41,8 +41,17 @@
         [15, 14],
         [16, 15],
         [17, 16]
-      ]
+      ],
+      "is_symmetric_connectivity": true
     },
-    "random_seed": -1
+    "debug_mode": true,
+    "machine_precision": 8,
+    "optimization_level": 1,
+    "output_format": ["qasm"],
+    "pretty_qasm": true,
+    "random_seed": -1,
+    "synthesize_all_separately": false,
+    "timeout_seconds": 300,
+    "transpilation_option": "auto optimize"
   }
 }

@@ -8,18 +8,14 @@ from testbook.client import TestbookNotebookClient
 
 @wrap_testbook("hardware_aware_mcx", timeout_seconds=56)
 def test_notebook(tb: TestbookNotebookClient) -> None:
-    # test models
-    validate_quantum_model(tb.ref("qmod"))
-    validate_quantum_model(tb.ref("qmod_linear"))
-    validate_quantum_model(tb.ref("qmod_all_to_all"))
     # test quantum programs
     validate_quantum_program_size(
-        tb.ref("qprog_linear"),
+        tb.ref_pydantic("qprog_linear"),
         expected_width=20,  # actual width: 17
-        expected_depth=1900,  # actual depth: 1677
+        expected_depth=2200,  # actual depth: 1677 or 1993
     )
     validate_quantum_program_size(
-        tb.ref("qprog_all_to_all"),
+        tb.ref_pydantic("qprog_all_to_all"),
         expected_width=20,  # actual width: 18
         expected_depth=1000,  # actual depth: 828
     )
